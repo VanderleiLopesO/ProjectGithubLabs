@@ -2,9 +2,36 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorPrimary">@android:color/black</item>
+        <item name="colorPrimaryDark">@android:color/black</item>
+        <item name="colorAccent">@android:color/darker_gray</item>
+    </style>
+
+    <style name="AppThemeWithNoActionBar" parent="AppTheme">
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="AppDefaultTextStyle">
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="AppDefaultLightTextStyle" parent="AppDefaultTextStyle">
+        <item name="android:textColor">@android:color/darker_gray</item>
+    </style>
+
+    <style name="AppCellName">
+        <item name="android:textColor">@android:color/holo_blue_dark</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="AppNickName" parent="AppCellName">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="AppUserName" parent="AppDefaultLightTextStyle">
+        <item name="android:textSize">12sp</item>
     </style>
 
 </resources>

@@ -1,25 +1,27 @@
 package com.lopessoft.projectgithublabs.presentation.activities
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lopessoft.projectgithublabs.R
-import com.lopessoft.projectgithublabs.infrastructure.BrowserUseCaseImpl
-import com.lopessoft.projectgithublabs.infrastructure.GitRepository
-import com.lopessoft.projectgithublabs.infrastructure.GitService
+import com.lopessoft.projectgithublabs.domain.entities.Loaded
+import com.lopessoft.projectgithublabs.domain.entities.Loading
+import com.lopessoft.projectgithublabs.domain.entities.LoadingItem
+import com.lopessoft.projectgithublabs.domain.entities.None
 import com.lopessoft.projectgithublabs.presentation.adapters.MainAdapter
-import com.lopessoft.projectgithublabs.presentation.viewmodels.Loaded
-import com.lopessoft.projectgithublabs.presentation.viewmodels.Loading
+import com.lopessoft.projectgithublabs.presentation.adapters.viewholders.OnItemClickListener
 import com.lopessoft.projectgithublabs.presentation.viewmodels.MainViewModel
 import kotlinx.android.synthetic.main.activity_main.*
+import org.koin.android.viewmodel.ext.android.viewModel
 
+class MainActivity : AppCompatActivity(), OnItemClickListener {
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,34 +31,44 @@ class MainActivity : AppCompatActivity() {
         setUpViewModel()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        viewModel.saveViewModelState()
+
+        super.onSaveInstanceState(outState)
+    }
+
     private fun setUpRecyclerView() {
         repositoriesRecyclerView.apply {
-            adapter = MainAdapter()
+            val mainAdapter = MainAdapter()
+            mainAdapter.listener = this@MainActivity
+            adapter = mainAdapter
             setHasFixedSize(true)
-            val manager = LinearLayoutManager(this@MainActivity)
-            layoutManager = manager
+            layoutManager = LinearLayoutManager(this@MainActivity)
 
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     if (dy > 0) {
-                        //viewModel.downloadMoreItems()
+                        val visibleItemCount = (layoutManager as LinearLayoutManager).childCount
+                        val totalItemCount = (layoutManager as LinearLayoutManager).itemCount
+                        val pastVisibleItems =
+                            (layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
+                        if (visibleItemCount + pastVisibleItems >= totalItemCount) {
+                            if ((viewModel.page < viewModel.data.value?.items?.size!!) &&
+                                (viewModel.nextPageStatus.value == Loaded || viewModel.nextPageStatus.value == None)
+                            ) {
+                                viewModel.requestNextPageData()
+                            }
+                        }
                     }
-
-                    super.onScrolled(recyclerView, dx, dy)
                 }
             })
         }
     }
 
     private fun setUpViewModel() {
-        viewModel =
-            MainViewModel(
-                application,
-                BrowserUseCaseImpl(GitRepository(GitService()))
-            )
 
         viewModel.run {
-            startRequest()
+            requestData()
 
             status.observe(this@MainActivity, Observer {
                 when (it) {
@@ -65,7 +77,29 @@ class MainActivity : AppCompatActivity() {
                     else -> showError()
                 }
             })
-            
+
+            nextPageData.observe(this@MainActivity, Observer { repository ->
+                val tempList = (repositoriesRecyclerView.adapter as MainAdapter).list
+
+                repository?.items?.forEach {
+                    tempList.add(it)
+                    data.value?.items?.plus(it)
+                    (repositoriesRecyclerView.adapter as MainAdapter).apply {
+                        list = tempList
+                        Log.e("xerere", list.size.toString())
+                        notifyDataSetChanged()
+                    }
+                }
+            })
+
+            nextPageStatus.observe(this@MainActivity, Observer {
+                when (it) {
+                    Loading -> showPaginationLoading()
+                    Loaded -> hidePaginationLoading()
+                    else -> showPaginationError()
+                }
+            })
+
         }
     }
 
@@ -75,9 +109,29 @@ class MainActivity : AppCompatActivity() {
         errorText.visibility = View.GONE
     }
 
+    private fun showPaginationLoading() {
+        (repositoriesRecyclerView.adapter as MainAdapter).apply {
+            list.add(LoadingItem)
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun hidePaginationLoading() {
+        (repositoriesRecyclerView.adapter as MainAdapter).apply {
+            list.remove(LoadingItem)
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun showPaginationError() {
+        hidePaginationLoading()
+    }
+
     private fun showRepositories() {
         viewModel.data.value?.let {
-            (repositoriesRecyclerView.adapter as MainAdapter).list = it.items.toMutableList()
+            if (viewModel.page == 1) {
+                (repositoriesRecyclerView.adapter as MainAdapter).list = it.items.toMutableList()
+            }
 
             progressBar.visibility = View.GONE
             repositoriesRecyclerView.visibility = View.VISIBLE
@@ -91,5 +145,21 @@ class MainActivity : AppCompatActivity() {
         progressBar.visibility = View.GONE
         repositoriesRecyclerView.visibility = View.GONE
         errorText.visibility = View.VISIBLE
+    }
+
+    override fun onRepositoryClicked(userName: String, repositoryName: String) {
+        startActivity(Intent(this, PullRequestActivity::class.java).apply {
+            putExtra(USER_NAME, userName)
+            putExtra(REPOSITORY_NAME, repositoryName)
+        })
+    }
+
+    override fun onPullRequestClicked(url: String) {
+        //nothing to do
+    }
+
+    companion object {
+        const val USER_NAME = "MainActivity.USER_NAME"
+        const val REPOSITORY_NAME = "MainActivity.REPOSITORY_NAME"
     }
 }

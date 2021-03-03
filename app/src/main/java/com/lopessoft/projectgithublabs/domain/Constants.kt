@@ -5,7 +5,3 @@ object Constants {
     const val JAVA = "language:Java"
     const val STARS = "stars"
 }
-
-sealed class ApiParameters(val value: String)
-object JavaLanguage : ApiParameters(Constants.JAVA)
-object StarsSort : ApiParameters(Constants.STARS)

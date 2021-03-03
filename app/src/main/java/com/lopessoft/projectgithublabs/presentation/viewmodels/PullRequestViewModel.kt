@@ -1,48 +1,40 @@
 package com.lopessoft.projectgithublabs.presentation.viewmodels
 
+import android.annotation.SuppressLint
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import com.lopessoft.projectgithublabs.domain.Constants
-import com.lopessoft.projectgithublabs.domain.Repository
-import com.lopessoft.projectgithublabs.infrastructure.ApiBuilder
-import com.lopessoft.projectgithublabs.infrastructure.BrowserUseCase
+import androidx.lifecycle.SavedStateHandle
+import com.lopessoft.projectgithublabs.domain.entities.*
+import com.lopessoft.projectgithublabs.infrastructure.usecases.PullRequestUseCase
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 
-sealed class RequestStatus
-object None: RequestStatus()
-object Loading: RequestStatus()
-object Loaded: RequestStatus()
-class Error(throwable: Throwable) : RequestStatus()
-
-class MainViewModel(
+class PullRequestViewModel(
     application: Application,
-    private val browserUseCase: BrowserUseCase
-) : AndroidViewModel(application) {
+    private val state: SavedStateHandle,
+    private val useCase: PullRequestUseCase
+) : BaseViewModel(application) {
 
-    init {
-        ApiBuilder.context = application
-    }
-
-    private val _status = MutableLiveData<RequestStatus>(
+    private val _status = state.getLiveData<RequestStatus>(STATUS_LIVE_DATA,
         None
     )
-    private val _data = MutableLiveData<Repository?>(null)
+    private val _data = state.getLiveData<List<PullRequestItem>?>(DATA_LIVE_DATA, null)
 
     val status: LiveData<RequestStatus>
         get() = _status
 
-    val data: LiveData<Repository?>
+    val data: LiveData<List<PullRequestItem>?>
         get() = _data
 
-    var page: Int = 1
+    @SuppressLint("CheckResult")
+    fun startRequest(creator: String, repositoryName: String) {
+        if (data.value != null && status.value != None) {
+            return
+        }
 
-    fun startRequest() {
         _status.postValue(Loading)
 
-        browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
+        useCase.getPullRequest(creator, repositoryName)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
@@ -51,30 +43,21 @@ class MainViewModel(
             }, {
                 _data.value = null
                 _status.postValue(
-                    Error(
-                        it
-                    )
+                    Error
                 )
             })
     }
 
-    fun downloadMoreItems() {
-        page += 1
+    override fun saveViewModelState() {
+        state.apply {
+            set(STATUS_LIVE_DATA, _status.value)
+            set(DATA_LIVE_DATA, _data.value)
+        }
+    }
 
-        browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                _data.value = it
-                _status.postValue(Loaded)
-            }, {
-                _data.value = null
-                _status.postValue(
-                    Error(
-                        it
-                    )
-                )
-            })
+    companion object {
+        const val STATUS_LIVE_DATA = "PullRequestViewModel.STATUS_LIVE_DATA"
+        const val DATA_LIVE_DATA = "PullRequestViewModel.DATA_LIVE_DATA"
     }
 
 }

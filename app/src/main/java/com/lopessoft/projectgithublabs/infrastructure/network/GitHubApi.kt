@@ -1,7 +1,7 @@
-package com.lopessoft.projectgithublabs.infrastructure
+package com.lopessoft.projectgithublabs.infrastructure.network
 
-import com.lopessoft.projectgithublabs.domain.PullRequestItem
-import com.lopessoft.projectgithublabs.domain.Repository
+import com.lopessoft.projectgithublabs.domain.entities.PullRequestItem
+import com.lopessoft.projectgithublabs.domain.entities.Repository
 import io.reactivex.Observable
 import retrofit2.http.GET
 import retrofit2.http.Path

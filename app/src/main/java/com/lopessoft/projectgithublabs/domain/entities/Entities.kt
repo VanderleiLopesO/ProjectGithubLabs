@@ -1,4 +1,4 @@
-package com.lopessoft.projectgithublabs.domain
+package com.lopessoft.projectgithublabs.domain.entities
 
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable

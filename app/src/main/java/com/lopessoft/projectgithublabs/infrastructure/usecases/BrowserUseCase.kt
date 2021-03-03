@@ -1,4 +1,6 @@
-package com.lopessoft.projectgithublabs.infrastructure
+package com.lopessoft.projectgithublabs.infrastructure.usecases
+
+import com.lopessoft.projectgithublabs.infrastructure.repositories.GitRepository
 
 class BrowserUseCase (private val repository: GitRepository) {
 

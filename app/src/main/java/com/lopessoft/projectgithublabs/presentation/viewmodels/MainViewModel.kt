@@ -1,30 +1,29 @@
 package com.lopessoft.projectgithublabs.presentation.viewmodels
 
+import android.annotation.SuppressLint
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import com.lopessoft.projectgithublabs.domain.Constants
-import com.lopessoft.projectgithublabs.domain.Repository
-import com.lopessoft.projectgithublabs.infrastructure.BrowserUseCase
+import androidx.lifecycle.SavedStateHandle
+import com.lopessoft.projectgithublabs.domain.*
+import com.lopessoft.projectgithublabs.domain.entities.*
+import com.lopessoft.projectgithublabs.infrastructure.usecases.BrowserUseCase
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 
-sealed class RequestStatus
-object None: RequestStatus()
-object Loading: RequestStatus()
-object Loaded: RequestStatus()
-class Error(throwable: Throwable) : RequestStatus()
-
 class MainViewModel(
     application: Application,
+    private val state: SavedStateHandle,
     private val browserUseCase: BrowserUseCase
-) : AndroidViewModel(application) {
+) : BaseViewModel(application) {
 
-    private val _status = MutableLiveData<RequestStatus>(
+    private val _status = state.getLiveData<RequestStatus>(STATUS_LIVE_DATA,
         None
     )
-    private val _data = MutableLiveData<Repository?>(null)
+    private val _data = state.getLiveData<Repository?>(DATA_LIVE_DATA, null)
+    private val _nextPageData = state.getLiveData<Repository?>(NEXT_PAGE_DATA_LIVE_DATA, null)
+    private val _nextPageStatus = state.getLiveData<RequestStatus>(NEXT_PAGE_STATUS_LIVE_DATA,
+        None
+    )
 
     val status: LiveData<RequestStatus>
         get() = _status
@@ -32,44 +31,62 @@ class MainViewModel(
     val data: LiveData<Repository?>
         get() = _data
 
+    val nextPageData: LiveData<Repository?>
+        get() = _nextPageData
+
+    val nextPageStatus: LiveData<RequestStatus>
+        get() = _nextPageStatus
+
     var page: Int = 1
 
-    fun startRequest() {
-        _status.postValue(Loading)
+    fun requestData() {
+        if (data.value != null && status.value != None) {
+            return
+        }
+
+        startRequest(true)
+    }
+
+    fun requestNextPageData() {
+        page++
+        startRequest(false)
+    }
+
+    @SuppressLint("CheckResult")
+    private fun startRequest(isFirstPage: Boolean) {
+        val data = if (isFirstPage) _data else _nextPageData
+        val status = if (isFirstPage) _status else _nextPageStatus
+
+        status.postValue(Loading)
 
         browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
-                _data.value = it
-                _status.postValue(Loaded)
+                data.value = it
+                status.postValue(Loaded)
             }, {
-                _data.value = null
-                _status.postValue(
-                    Error(
-                        it
-                    )
+                data.value = null
+                status.postValue(
+                    Error
                 )
             })
     }
 
-    fun downloadMoreItems() {
-        page += 1
+    override fun saveViewModelState() {
+        state.apply {
+            set(STATUS_LIVE_DATA, _status.value)
+            set(DATA_LIVE_DATA, _data.value)
+            set(NEXT_PAGE_DATA_LIVE_DATA, _nextPageData.value)
+            set(NEXT_PAGE_STATUS_LIVE_DATA, _nextPageStatus.value)
+        }
+    }
 
-        browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                _data.value = it
-                _status.postValue(Loaded)
-            }, {
-                _data.value = null
-                _status.postValue(
-                    Error(
-                        it
-                    )
-                )
-            })
+    companion object {
+        const val STATUS_LIVE_DATA = "MainViewModel.STATUS_LIVE_DATA"
+        const val DATA_LIVE_DATA = "MainViewModel.DATA_LIVE_DATA"
+        const val NEXT_PAGE_DATA_LIVE_DATA = "MainViewModel.NEXT_PAGE_DATA_LIVE_DATA"
+        const val NEXT_PAGE_STATUS_LIVE_DATA = "MainViewModel.NEXT_PAGE_STATUS_LIVE_DATA"
     }
 
 }

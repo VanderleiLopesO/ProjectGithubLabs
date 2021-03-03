@@ -1,4 +1,4 @@
-package com.lopessoft.projectgithublabs.infrastructure
+package com.lopessoft.projectgithublabs.infrastructure.network
 
 import com.lopessoft.projectgithublabs.domain.Constants
 import okhttp3.OkHttpClient
