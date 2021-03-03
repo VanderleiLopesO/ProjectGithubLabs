@@ -15,7 +15,8 @@ class PullRequestViewModel(
     private val useCase: PullRequestUseCase
 ) : BaseViewModel(application) {
 
-    private val _status = state.getLiveData<RequestStatus>(STATUS_LIVE_DATA,
+    private val _status = state.getLiveData<RequestStatus>(
+        STATUS_LIVE_DATA,
         None
     )
     private val _data = state.getLiveData<List<PullRequestItem>?>(DATA_LIVE_DATA, null)
@@ -26,8 +27,14 @@ class PullRequestViewModel(
     val data: LiveData<List<PullRequestItem>?>
         get() = _data
 
+    private lateinit var creator: String
+    private lateinit var repositoryName: String
+
     @SuppressLint("CheckResult")
     fun startRequest(creator: String, repositoryName: String) {
+        this.creator = creator
+        this.repositoryName = repositoryName
+
         if (data.value != null && status.value != None) {
             return
         }
@@ -46,6 +53,10 @@ class PullRequestViewModel(
                     Error
                 )
             })
+    }
+
+    fun retryRequest() {
+        startRequest(creator, repositoryName)
     }
 
     override fun saveViewModelState() {

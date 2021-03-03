@@ -21,6 +21,8 @@ data class Repository(
 
 object LoadingItem : GitHubEntity()
 
+object ErrorItem : GitHubEntity()
+
 data class PullRequestItem(
     val id: Long,
     @SerializedName("html_url")

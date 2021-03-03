@@ -2,17 +2,13 @@ package com.lopessoft.projectgithublabs.presentation.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lopessoft.projectgithublabs.R
-import com.lopessoft.projectgithublabs.domain.entities.Loaded
-import com.lopessoft.projectgithublabs.domain.entities.Loading
-import com.lopessoft.projectgithublabs.domain.entities.LoadingItem
-import com.lopessoft.projectgithublabs.domain.entities.None
+import com.lopessoft.projectgithublabs.domain.entities.*
 import com.lopessoft.projectgithublabs.presentation.adapters.MainAdapter
 import com.lopessoft.projectgithublabs.presentation.adapters.viewholders.OnItemClickListener
 import com.lopessoft.projectgithublabs.presentation.viewmodels.MainViewModel
@@ -86,7 +82,6 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
                     data.value?.items?.plus(it)
                     (repositoriesRecyclerView.adapter as MainAdapter).apply {
                         list = tempList
-                        Log.e("xerere", list.size.toString())
                         notifyDataSetChanged()
                     }
                 }
@@ -125,6 +120,18 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
 
     private fun showPaginationError() {
         hidePaginationLoading()
+
+        (repositoriesRecyclerView.adapter as MainAdapter).apply {
+            list.add(ErrorItem)
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun hidePaginationError() {
+        (repositoriesRecyclerView.adapter as MainAdapter).apply {
+            list.remove(ErrorItem)
+            notifyDataSetChanged()
+        }
     }
 
     private fun showRepositories() {
@@ -145,6 +152,10 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
         progressBar.visibility = View.GONE
         repositoriesRecyclerView.visibility = View.GONE
         errorText.visibility = View.VISIBLE
+
+        errorText.setOnClickListener {
+            viewModel.retryRequest(true)
+        }
     }
 
     override fun onRepositoryClicked(userName: String, repositoryName: String) {
@@ -156,6 +167,12 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
 
     override fun onPullRequestClicked(url: String) {
         //nothing to do
+    }
+
+    override fun onRetryRequestClicked() {
+        hidePaginationError()
+
+        viewModel.retryRequest(false)
     }
 
     companion object {

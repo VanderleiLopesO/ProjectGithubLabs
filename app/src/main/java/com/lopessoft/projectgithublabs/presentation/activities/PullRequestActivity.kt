@@ -95,6 +95,10 @@ class PullRequestActivity : AppCompatActivity(), OnItemClickListener {
         pullRequestProgressBar.visibility = View.GONE
         pullRequestRecyclerView.visibility = View.GONE
         pullRequestErrorText.visibility = View.VISIBLE
+
+        pullRequestErrorText.setOnClickListener {
+            viewModel.retryRequest()
+        }
     }
 
     override fun onRepositoryClicked(userName: String, repositoryName: String) {
@@ -103,5 +107,9 @@ class PullRequestActivity : AppCompatActivity(), OnItemClickListener {
 
     override fun onPullRequestClicked(url: String) {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    override fun onRetryRequestClicked() {
+        //nothing to do
     }
 }

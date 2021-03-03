@@ -4,10 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.lopessoft.projectgithublabs.R
-import com.lopessoft.projectgithublabs.domain.entities.GitHubEntity
-import com.lopessoft.projectgithublabs.domain.entities.Item
-import com.lopessoft.projectgithublabs.domain.entities.LoadingItem
-import com.lopessoft.projectgithublabs.domain.entities.PullRequestItem
+import com.lopessoft.projectgithublabs.domain.entities.*
 import com.lopessoft.projectgithublabs.presentation.adapters.viewholders.*
 
 class MainAdapter : RecyclerView.Adapter<BaseBrowserViewHolder>() {
@@ -32,9 +29,14 @@ class MainAdapter : RecyclerView.Adapter<BaseBrowserViewHolder>() {
                     .inflate(R.layout.pull_request_list_item, parent, false),
                 listener
             )
-            else -> LoadingViewHolder(
+            LOADING_TYPE -> LoadingViewHolder(
                 LayoutInflater.from(parent.context)
                     .inflate(R.layout.loading_list_item, parent, false)
+            )
+            else -> ErrorViewHolder(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.error_list_item, parent, false),
+                listener
             )
         }
 
@@ -48,12 +50,14 @@ class MainAdapter : RecyclerView.Adapter<BaseBrowserViewHolder>() {
             is Item -> REPOSITORY_TYPE
             is PullRequestItem -> PULL_REQUEST_TYPE
             is LoadingItem -> LOADING_TYPE
+            is ErrorItem -> ERROR_TYPE
         }
 
     companion object {
         const val REPOSITORY_TYPE = 0
         const val PULL_REQUEST_TYPE = 1
         const val LOADING_TYPE = 2
+        const val ERROR_TYPE = 3
     }
 
 }

@@ -52,6 +52,14 @@ class MainViewModel(
         startRequest(false)
     }
 
+    fun retryRequest(isFirstPage: Boolean) {
+        if (isFirstPage) {
+            requestData()
+        } else {
+            startRequest(isFirstPage)
+        }
+    }
+
     @SuppressLint("CheckResult")
     private fun startRequest(isFirstPage: Boolean) {
         val data = if (isFirstPage) _data else _nextPageData

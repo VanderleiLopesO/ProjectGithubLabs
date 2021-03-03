@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 interface OnItemClickListener {
     fun onRepositoryClicked(userName: String, repositoryName: String)
     fun onPullRequestClicked(url: String)
+    fun onRetryRequestClicked()
 }
 
 abstract class BaseBrowserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
