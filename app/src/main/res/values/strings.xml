@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ProjectGithubLabs</string>
+
+    <string name="generic_error_text">Algo deu errado! Tente novamente!</string>
+</resources>
