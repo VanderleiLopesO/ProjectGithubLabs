@@ -13,8 +13,9 @@ import io.reactivex.Observable
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.koin.test.AutoCloseKoinTest
 
-class GitRepositoryTest {
+class GitRepositoryTest: AutoCloseKoinTest() {
 
     private lateinit var service: GitService
     private lateinit var repository: GitRepository

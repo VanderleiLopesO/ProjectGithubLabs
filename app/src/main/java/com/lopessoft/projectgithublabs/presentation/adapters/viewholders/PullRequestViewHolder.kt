@@ -3,9 +3,9 @@ package com.lopessoft.projectgithublabs.presentation.adapters.viewholders
 import android.view.View
 import com.lopessoft.projectgithublabs.R
 import com.lopessoft.projectgithublabs.domain.entities.PullRequestItem
+import com.lopessoft.projectgithublabs.presentation.extensions.convertToBRTFormatDate
 import com.lopessoft.projectgithublabs.presentation.extensions.loadImage
 import kotlinx.android.synthetic.main.pull_request_list_item.view.*
-import java.lang.Exception
 
 class PullRequestViewHolder(itemView: View, private val listener: OnItemClickListener?) :
     BaseBrowserViewHolder(itemView) {
@@ -20,7 +20,7 @@ class PullRequestViewHolder(itemView: View, private val listener: OnItemClickLis
                 pullRequestOwnerLoginTextView.text = currentItem.owner.name
                 pullRequestCreationDate.text = String.format(
                     context.getString(R.string.pull_request_creation_date_text),
-                    currentItem.date
+                    currentItem.date.convertToBRTFormatDate()
                 )
 
                 pullRequestUserImage.loadImage(currentItem.owner.image, context)

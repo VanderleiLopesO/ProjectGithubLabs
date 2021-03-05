@@ -11,7 +11,6 @@ interface OnItemClickListener {
 
 abstract class BaseBrowserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-    open fun bind(item: Any, position: Int) {
-        //nothing to do
-    }
+    abstract fun bind(item: Any, position: Int)
+
 }

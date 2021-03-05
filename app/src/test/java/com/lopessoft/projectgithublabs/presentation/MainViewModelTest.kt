@@ -1,16 +1,18 @@
 package com.lopessoft.projectgithublabs.presentation
 
 import android.app.Activity
+import android.os.Build
 import android.os.Looper
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
+import com.lopessoft.projectgithublabs.domain.Constants
 import com.lopessoft.projectgithublabs.domain.entities.*
-import com.lopessoft.projectgithublabs.infrastructure.usecases.PullRequestUseCase
-import com.lopessoft.projectgithublabs.presentation.viewmodels.PullRequestViewModel
-import com.lopessoft.projectgithublabs.presentation.viewmodels.PullRequestViewModel.Companion.DATA_LIVE_DATA
-import com.lopessoft.projectgithublabs.presentation.viewmodels.PullRequestViewModel.Companion.STATUS_LIVE_DATA
+import com.lopessoft.projectgithublabs.infrastructure.usecases.BrowserUseCase
+import com.lopessoft.projectgithublabs.presentation.viewmodels.MainViewModel
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import org.junit.Assert
@@ -18,26 +20,27 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.test.AutoCloseKoinTest
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.LooperMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
-@LooperMode(LooperMode.Mode.PAUSED)
-class PullRequestViewModelTest {
+@Config(sdk = [Build.VERSION_CODES.O_MR1])
+class MainViewModelTest: AutoCloseKoinTest() {
 
-    private lateinit var viewModel: PullRequestViewModel
+    private lateinit var viewModel: MainViewModel
+    private lateinit var spyViewModel: MainViewModel
+
     private lateinit var savedState: SavedStateHandle
-    private lateinit var useCase: PullRequestUseCase
+    private lateinit var useCase: BrowserUseCase
     private var activity: Activity = Robolectric.setupActivity(Activity::class.java)
 
-    private val creator = "fulano"
-    private val repositoryName = "fulano-repo"
-    private val mockedList = listOf(
-        PullRequestItem(0, "", "", "", "", Owner(0, "", ""))
+    private val mockedList = Repository(
+        listOf(
+            Item(0, "", "", Owner(0, "", ""), 0, 0)
+        )
     )
 
     // Run tasks synchronously
@@ -50,20 +53,20 @@ class PullRequestViewModelTest {
         savedState = SavedStateHandle()
         useCase = mockk()
         viewModel =
-            PullRequestViewModel(
+            MainViewModel(
                 activity.application,
                 savedState,
                 useCase,
                 Schedulers.trampoline()
             )
+        spyViewModel = spyk(viewModel, recordPrivateCalls = true)
     }
 
     @Test
-    fun testStartRequest() {
+    fun testRequestData() {
         mockUseCase()
 
-        viewModel.startRequest(creator, repositoryName)
-
+        viewModel.requestData()
         shadowOf(Looper.getMainLooper()).idle()
 
         Assert.assertEquals(mockedList, viewModel.data.value)
@@ -71,17 +74,28 @@ class PullRequestViewModelTest {
     }
 
     @Test
-    fun testStartRequestWithCachedData() {
+    fun testRequestDataForErrorCase() {
+        mockUseCaseForThrowError()
+
+        viewModel.requestData()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        Assert.assertEquals(null, viewModel.data.value)
+        Assert.assertEquals(Error, viewModel.status.value)
+    }
+
+    @Test
+    fun testRequestDataWithCachedData() {
         mockUseCase()
 
-        viewModel.startRequest(creator, repositoryName)
+        viewModel.requestData()
         shadowOf(Looper.getMainLooper()).idle()
         val result = Pair(
             viewModel.data.value!!,
             viewModel.status.value!!
         )
 
-        viewModel.startRequest(creator, repositoryName)
+        viewModel.requestData()
         shadowOf(Looper.getMainLooper()).idle()
 
         Assert.assertEquals(result.first, viewModel.data.value)
@@ -89,64 +103,80 @@ class PullRequestViewModelTest {
     }
 
     @Test
-    fun testStartRequestOnErrorCase() {
-        mockUseCaseForThrowError()
+    fun testRequestNextPageData() {
+        mockUseCase()
 
-        viewModel.startRequest(creator, repositoryName)
-
+        viewModel.requestData()
         shadowOf(Looper.getMainLooper()).idle()
 
-        Assert.assertNull(viewModel.data.value)
-        Assert.assertEquals(Error, viewModel.status.value)
+        viewModel.requestNextPageData()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        Assert.assertEquals(mockedList, viewModel.data.value)
+        Assert.assertEquals(Loaded, viewModel.status.value)
+        Assert.assertEquals(2, viewModel.page)
     }
 
     @Test
     fun testRetryRequest() {
         mockUseCase()
 
-        viewModel.startRequest(creator, repositoryName)
-        shadowOf(Looper.getMainLooper()).idle()
-        val result = Pair(
-            viewModel.data.value!!,
-            viewModel.status.value!!
-        )
-
-        viewModel.retryRequest()
+        spyViewModel.retryRequest(true)
         shadowOf(Looper.getMainLooper()).idle()
 
-        Assert.assertEquals(creator, viewModel.getCreator)
-        Assert.assertEquals(repositoryName, viewModel.getRepositoryName)
-        Assert.assertEquals(result.first, viewModel.data.value)
-        Assert.assertEquals(result.second, viewModel.status.value)
+        verify { spyViewModel invokeNoArgs "requestData" }
+    }
+
+    @Test
+    fun testRetryRequestForNextPage() {
+        mockUseCase()
+
+        spyViewModel.retryRequest(false)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify { spyViewModel["startRequest"](false) }
     }
 
     @Test
     fun testSaveViewModelState() {
         mockUseCase()
 
-        viewModel.startRequest(creator, repositoryName)
+        viewModel.requestData()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        viewModel.requestNextPageData()
         shadowOf(Looper.getMainLooper()).idle()
 
         viewModel.saveViewModelState()
 
-        Assert.assertEquals(viewModel.data.value, viewModel.state[DATA_LIVE_DATA])
-        Assert.assertEquals(viewModel.status.value, viewModel.state[STATUS_LIVE_DATA])
+        Assert.assertEquals(viewModel.data.value, viewModel.state[MainViewModel.DATA_LIVE_DATA])
+        Assert.assertEquals(viewModel.status.value, viewModel.state[MainViewModel.STATUS_LIVE_DATA])
+        Assert.assertEquals(
+            viewModel.nextPageData.value,
+            viewModel.state[MainViewModel.NEXT_PAGE_DATA_LIVE_DATA]
+        )
+        Assert.assertEquals(
+            viewModel.nextPageStatus.value,
+            viewModel.state[MainViewModel.NEXT_PAGE_STATUS_LIVE_DATA]
+        )
     }
 
     private fun mockUseCase() {
         every {
-            useCase.getPullRequest(
-                creator,
-                repositoryName
+            useCase.getRepositories(
+                any(),
+                Constants.JAVA,
+                Constants.STARS
             )
         } returns Observable.just(mockedList)
     }
 
     private fun mockUseCaseForThrowError() {
         every {
-            useCase.getPullRequest(
-                creator,
-                repositoryName
+            useCase.getRepositories(
+                any(),
+                Constants.JAVA,
+                Constants.STARS
             )
         } returns Observable.error(Throwable())
     }

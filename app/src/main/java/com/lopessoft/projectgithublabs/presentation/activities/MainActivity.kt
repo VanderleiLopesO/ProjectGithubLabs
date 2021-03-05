@@ -51,8 +51,7 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
                             (layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
                         if (visibleItemCount + pastVisibleItems >= totalItemCount) {
                             if ((viewModel.page < viewModel.data.value?.items?.size!!) &&
-                                (viewModel.nextPageStatus.value == Loaded || viewModel.nextPageStatus.value == None)
-                            ) {
+                                viewModel.nextPageStatus.value != Loading) {
                                 viewModel.requestNextPageData()
                             }
                         }

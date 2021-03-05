@@ -7,8 +7,6 @@ abstract class BaseViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    open fun saveViewModelState() {
-        //to be override
-    }
+    abstract fun saveViewModelState()
 
 }

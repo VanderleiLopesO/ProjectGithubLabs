@@ -10,8 +10,9 @@ import io.reactivex.Observable
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.koin.test.AutoCloseKoinTest
 
-class PullRequestUseCaseTest {
+class PullRequestUseCaseTest: AutoCloseKoinTest() {
 
     private lateinit var repository: GitRepository
 
