@@ -6,13 +6,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.SavedStateHandle
 import com.lopessoft.projectgithublabs.domain.entities.*
 import com.lopessoft.projectgithublabs.infrastructure.usecases.PullRequestUseCase
+import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 
 class PullRequestViewModel(
     application: Application,
-    private val state: SavedStateHandle,
-    private val useCase: PullRequestUseCase
+    val state: SavedStateHandle,
+    private val useCase: PullRequestUseCase,
+    private val scheduler: Scheduler = Schedulers.io()
 ) : BaseViewModel(application) {
 
     private val _status = state.getLiveData<RequestStatus>(
@@ -30,6 +32,12 @@ class PullRequestViewModel(
     private lateinit var creator: String
     private lateinit var repositoryName: String
 
+    val getCreator: String
+        get() = creator
+
+    val getRepositoryName: String
+        get() = repositoryName
+
     @SuppressLint("CheckResult")
     fun startRequest(creator: String, repositoryName: String) {
         this.creator = creator
@@ -42,7 +50,7 @@ class PullRequestViewModel(
         _status.postValue(Loading)
 
         useCase.getPullRequest(creator, repositoryName)
-            .subscribeOn(Schedulers.io())
+            .subscribeOn(scheduler)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 _data.value = it

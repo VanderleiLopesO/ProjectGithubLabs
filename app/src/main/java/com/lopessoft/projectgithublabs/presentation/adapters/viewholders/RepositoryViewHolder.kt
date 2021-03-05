@@ -2,7 +2,7 @@ package com.lopessoft.projectgithublabs.presentation.adapters.viewholders
 
 import android.view.View
 import com.lopessoft.projectgithublabs.domain.entities.Item
-import com.lopessoft.projectgithublabs.infrastructure.extensions.loadImage
+import com.lopessoft.projectgithublabs.presentation.extensions.loadImage
 import kotlinx.android.synthetic.main.repository_list_item.view.*
 import java.lang.Exception
 

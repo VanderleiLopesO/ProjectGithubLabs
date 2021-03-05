@@ -1,4 +1,4 @@
-package com.lopessoft.projectgithublabs.infrastructure.extensions
+package com.lopessoft.projectgithublabs.presentation.extensions
 
 import android.content.Context
 import android.widget.ImageView

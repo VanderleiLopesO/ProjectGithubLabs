@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity(), OnItemClickListener {
 
         setUpRecyclerView()
         setUpViewModel()
+
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

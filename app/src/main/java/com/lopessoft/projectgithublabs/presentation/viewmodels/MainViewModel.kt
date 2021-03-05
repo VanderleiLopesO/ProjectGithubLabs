@@ -7,21 +7,25 @@ import androidx.lifecycle.SavedStateHandle
 import com.lopessoft.projectgithublabs.domain.*
 import com.lopessoft.projectgithublabs.domain.entities.*
 import com.lopessoft.projectgithublabs.infrastructure.usecases.BrowserUseCase
+import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 
 class MainViewModel(
     application: Application,
-    private val state: SavedStateHandle,
-    private val browserUseCase: BrowserUseCase
+    val state: SavedStateHandle,
+    private val browserUseCase: BrowserUseCase,
+    private val scheduler: Scheduler = Schedulers.io()
 ) : BaseViewModel(application) {
 
-    private val _status = state.getLiveData<RequestStatus>(STATUS_LIVE_DATA,
+    private val _status = state.getLiveData<RequestStatus>(
+        STATUS_LIVE_DATA,
         None
     )
     private val _data = state.getLiveData<Repository?>(DATA_LIVE_DATA, null)
     private val _nextPageData = state.getLiveData<Repository?>(NEXT_PAGE_DATA_LIVE_DATA, null)
-    private val _nextPageStatus = state.getLiveData<RequestStatus>(NEXT_PAGE_STATUS_LIVE_DATA,
+    private val _nextPageStatus = state.getLiveData<RequestStatus>(
+        NEXT_PAGE_STATUS_LIVE_DATA,
         None
     )
 
@@ -38,6 +42,27 @@ class MainViewModel(
         get() = _nextPageStatus
 
     var page: Int = 1
+
+    @SuppressLint("CheckResult")
+    private fun startRequest(isFirstPage: Boolean) {
+        val data = if (isFirstPage) _data else _nextPageData
+        val status = if (isFirstPage) _status else _nextPageStatus
+
+        status.postValue(Loading)
+
+        browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
+            .subscribeOn(scheduler)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                data.value = it
+                status.postValue(Loaded)
+            }, {
+                data.value = null
+                status.postValue(
+                    Error
+                )
+            })
+    }
 
     fun requestData() {
         if (data.value != null && status.value != None) {
@@ -58,27 +83,6 @@ class MainViewModel(
         } else {
             startRequest(isFirstPage)
         }
-    }
-
-    @SuppressLint("CheckResult")
-    private fun startRequest(isFirstPage: Boolean) {
-        val data = if (isFirstPage) _data else _nextPageData
-        val status = if (isFirstPage) _status else _nextPageStatus
-
-        status.postValue(Loading)
-
-        browserUseCase.getRepositories(page, Constants.JAVA, Constants.STARS)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                data.value = it
-                status.postValue(Loaded)
-            }, {
-                data.value = null
-                status.postValue(
-                    Error
-                )
-            })
     }
 
     override fun saveViewModelState() {
